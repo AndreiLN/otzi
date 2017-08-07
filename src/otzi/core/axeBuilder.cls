@@ -162,5 +162,22 @@ ClassMethod help()
 	Write "",!
 }
 
+/// --- Scaffolding
+Method Scaffold() As %Status
+{
+	Set tSC = $$$OK
+	Try {
+		$$$THROWONERROR(tSC, ##class(otzi.core.Project).Create(..NameSpace, ..Package, ..Project, ..Modules, ..Test, ..WebApp, ..Options ))
+	} Catch tException {
+		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
+	}
+	Quit tSC
+}
+
+Method run() As %Status
+{
+	Quit ..Scaffold()
+}
+
 }
 
