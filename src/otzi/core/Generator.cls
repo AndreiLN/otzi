@@ -69,7 +69,7 @@ ClassMethod Class(args...) As %Status [ Private ]
 		Set className = pTemplate.Name, newClass = ""
 		
 		If $Extract(className,1,1)="." {
-			S className = ""
+			Set className = ""
 			Set:pPackage'="" $List(className,*+1) = pPackage
 			Set:pProject'="" $List(className,*+1) = pProject
 			
@@ -106,13 +106,19 @@ ClassMethod Class(args...) As %Status [ Private ]
 			
 			// Properties
 			For p=1:1:pTemplate.Properties.Count() {
+				ZNSpace ns
+					$$$THROWONERROR(tSC, ..AddProperty(pNamespace, pPackage, pProject, pTemplate.Methods.GetAt(p), .property))
+				ZNSpace pNamespace
 				
-				$$$THROWONERROR(tSC, ..AddProperty(pPackage, pProject, pTemplate.Methods.GetAt(p), .property))
 				$$$THROWONERROR(tSC, newClass.Properties.Insert(property) )
+				
 				
 				// Create simple Index
 				If pTemplate.Properties.GetAt(p).Index'="" {
-					$$$THROWONERROR(tSC, ..AddSimpleIndex(pTemplate.Properties.GetAt(p).Name, .indice))
+					ZNSpace ns
+						$$$THROWONERROR(tSC, ..AddSimpleIndex(pNamespace, pTemplate.Properties.GetAt(p).Name, .indice))
+					ZNSpace pNamespace
+					
 					$$$THROWONERROR(tSC, newClass.Indices.Insert(indice) )
 				}
 			}
@@ -120,7 +126,11 @@ ClassMethod Class(args...) As %Status [ Private ]
 			
 			// Methods
 			For m=1:1:pTemplate.Methods.Count() {
-				$$$THROWONERROR(tSC, ..AddMethod(pPackage, pProject, pTemplate.Methods.GetAt(m), .method))
+				
+				ZNSpace ns
+					$$$THROWONERROR(tSC, ..AddMethod(pNamespace, pPackage, pProject, pTemplate.Methods.GetAt(m), .method))
+				ZNSpace pNamespace
+				
 				$$$THROWONERROR(tSC, newClass.Methods.Insert(method) )
 			}
 			$$$THROWONERROR(tSC, newClass.%Save() )
@@ -232,10 +242,12 @@ ClassMethod Replace(pPackage As %String = "", pProject As %String = "", pParam A
 	Quit output
 }
 
-ClassMethod AddMethod(pPackage As %String = "", pProject As %String = "", pTemplateMethod As otzi.core.vo.Template.Method, Output pMethod As %Dictionary.MethodDefinition) As %Status [ Private ]
+ClassMethod AddMethod(pNamespace As %String = "", pPackage As %String = "", pProject As %String = "", pTemplateMethod As otzi.core.vo.Template.Method, Output pMethod As %Dictionary.MethodDefinition) As %Status [ Private ]
 {
-	Set tSC = $$$OK
+	Set ns=$Namespace, tSC = $$$OK
 	Try {
+		ZNSpace pNamespace
+		
 		Set pMethod = ##class(%Dictionary.MethodDefinition).%New()
 		Set pMethod.ClassMethod = 0, parameter = ""
 		
@@ -254,29 +266,30 @@ ClassMethod AddMethod(pPackage As %String = "", pProject As %String = "", pTempl
 		
 		Set:pTemplateMethod.Parameters'="" parameter = pTemplateMethod.Parameters
 		
-		//ZNSpace ns
+		ZNSpace ns
 			Set pMethod.Name = ..Replace(pPackage, pProject, pTemplateMethod.Name)
 			Set:pTemplateMethod.Value'="" pMethod.ReturnType = ..Replace(pPackage, pProject, pTemplateMethod.Value)
 			Do pMethod.Implementation.Write( ..Replace(pPackage, pProject, pTemplateMethod.Implementation.Read()) )
 			Set:parameter'="" pMethod.FormalSpec = ..Replace(pPackage, pProject, parameter)
-		//ZNSpace pNamespace
+		ZNSpace pNamespace
 	} Catch tException {
 		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
 	}
+	ZNSpace ns
 	Quit tSC
 }
 
-ClassMethod AddProperty(pPackage As %String = "", pProject As %String = "", pTemplateProperty As otzi.core.vo.Template.Property, Output pProperty As %Dictionary.PropertyDefinition) As %Status [ Private ]
+ClassMethod AddProperty(pNamespace As %String = "", pPackage As %String = "", pProject As %String = "", pTemplateProperty As otzi.core.vo.Template.Property, Output pProperty As %Dictionary.PropertyDefinition) As %Status [ Private ]
 {
-	Set tSC = $$$OK
+	Set ns=$Namespace, tSC = $$$OK
 	Try {
-
+		ZNSpace pNamespace
 		Set pProperty = ##class(%Dictionary.PropertyDefinition).%New()
 		
-		//ZNSpace ns
+		ZNSpace ns
 			Set pProperty.Name = ..Replace(pPackage, pProject, pTemplateProperty.Name)
 			Set pProperty.Type = ..Replace(pPackage, pProject, pTemplateProperty.Value)
-		//ZNSpace pNamespace
+		ZNSpace pNamespace
 		
 		Set:pTemplateProperty.List'="" pProperty.Collection = "list"
 		If (pTemplateProperty.Parameters.Count() > 0) {
@@ -285,29 +298,33 @@ ClassMethod AddProperty(pPackage As %String = "", pProject As %String = "", pTem
 				Set parameter = pTemplateProperty.Parameters.GetAt(param)
 				
 				Set paramValue ="",paramName =""
-				//ZNSpace ns
+				ZNSpace ns
 					Set paramValue = ..Replace(pPackage, pProject, parameter.Value)
 					Set paramName = ..Replace(pPackage, pProject, parameter.Name)
-				//ZNSpace pNamespace
+				ZNSpace pNamespace
 				Do pProperty.Parameters.SetAt(paramValue, paramName)
 			}
 		}
+		
 	} Catch tException {
 		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
 	}
+	ZNSpace ns
 	Quit tSC
 }
 
-ClassMethod AddSimpleIndex(pPropertyName As %String, Output pIndex As %Dictionary.IndexDefinition) As %Status [ Private ]
+ClassMethod AddSimpleIndex(pNamespace As %String = "", pPropertyName As %String, Output pIndex As %Dictionary.IndexDefinition) As %Status [ Private ]
 {
-	Set tSC = $$$OK
+	Set ns=$Namespace, tSC = $$$OK
 	Try {
+		ZNSpace pNamespace
 		Set indice = ##class(%Dictionary.IndexDefinition).%New()
 		Set indice.Name = "Idx"_pPropertyName
 		Set indice.Properties = pPropertyName
 	} Catch tException {
 		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
 	}
+	ZNSpace ns
 	Quit tSC
 }
 
