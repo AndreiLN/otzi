@@ -1,7 +1,7 @@
 Class otzi.core.vo.Template.Method Extends otzi.core.vo.Template.NameValue
 {
 
-Property Type As %String(DISPLAYLIST = ",Class,Instance,Client", VALUELIST = ",Class,Instance,Client", XMLPROJECTION = "ATTRIBUTE") [ InitialExpression = "Instance" ];
+Property Type As %String(DISPLAYLIST = ",Class,Instance,Client,Zen,Javascript", VALUELIST = ",Class,Instance,Client,Zen,Javascript", XMLPROJECTION = "ATTRIBUTE") [ InitialExpression = "Instance" ];
 
 Property Language As %String(XMLPROJECTION = "ATTRIBUTE");
 

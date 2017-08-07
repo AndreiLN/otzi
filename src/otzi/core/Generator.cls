@@ -106,35 +106,13 @@ ClassMethod Class(args...) As %Status [ Private ]
 			
 			// Properties
 			For p=1:1:pTemplate.Properties.Count() {
-				Set property = ##class(%Dictionary.PropertyDefinition).%New()
 				
-				ZNSpace ns
-					Set property.Name = ..Replace(pPackage, pProject, pTemplate.Properties.GetAt(p).Name)
-					Set property.Type = ..Replace(pPackage, pProject, pTemplate.Properties.GetAt(p).Value)
-				ZNSpace pNamespace
-				
-				Set:pTemplate.Properties.GetAt(p).List'="" property.Collection = "list"
-				If (pTemplate.Properties.GetAt(p).Parameters.Count() > 0) {
-					For param=1:1:pTemplate.Properties.GetAt(p).Parameters.Count() {
-						#Dim parameter As otzi.core.vo.Parameter
-						Set parameter = pTemplate.Properties.GetAt(p).Parameters.GetAt(param)
-						
-						Set paramValue ="",paramName =""
-						ZNSpace ns
-							Set paramValue = ..Replace(pPackage, pProject, parameter.Value)
-							Set paramName = ..Replace(pPackage, pProject, parameter.Name)
-						ZNSpace pNamespace
-						Do property.Parameters.SetAt(paramValue, paramName)
-					}
-				}
-
+				$$$THROWONERROR(tSC, ..AddProperty(pPackage, pProject, pTemplate.Methods.GetAt(p), .property))
 				$$$THROWONERROR(tSC, newClass.Properties.Insert(property) )
 				
 				// Create simple Index
 				If pTemplate.Properties.GetAt(p).Index'="" {
-					Set indice = ##class(%Dictionary.IndexDefinition).%New()
-					Set indice.Name = "Idx"_property.Name
-					Set indice.Properties = property.Name
+					$$$THROWONERROR(tSC, ..AddSimpleIndex(pTemplate.Properties.GetAt(p).Name, .indice))
 					$$$THROWONERROR(tSC, newClass.Indices.Insert(indice) )
 				}
 			}
@@ -142,20 +120,7 @@ ClassMethod Class(args...) As %Status [ Private ]
 			
 			// Methods
 			For m=1:1:pTemplate.Methods.Count() {
-				Set method = ##class(%Dictionary.MethodDefinition).%New()
-				Set method.ClassMethod = 0, parameter = ""
-				
-				Set:pTemplate.Methods.GetAt(m).Type="Class" method.ClassMethod = 1
-				Set:pTemplate.Methods.GetAt(m).Type="Client" method.ClientMethod = 1
-				Set:pTemplate.Methods.GetAt(m).Parameters'="" parameter = pTemplate.Methods.GetAt(m).Parameters
-				
-				ZNSpace ns
-					Set method.Name = ..Replace(pPackage, pProject, pTemplate.Methods.GetAt(m).Name)
-					Set:pTemplate.Methods.GetAt(m).Value'="" method.ReturnType = ..Replace(pPackage, pProject, pTemplate.Methods.GetAt(m).Value)
-					Do method.Implementation.Write( ..Replace(pPackage, pProject, pTemplate.Methods.GetAt(m).Implementation.Read()) )
-					Set:parameter'="" method.FormalSpec = ..Replace(pPackage, pProject, parameter)
-				ZNSpace pNamespace
-
+				$$$THROWONERROR(tSC, ..AddMethod(pPackage, pProject, pTemplate.Methods.GetAt(m), .method))
 				$$$THROWONERROR(tSC, newClass.Methods.Insert(method) )
 			}
 			$$$THROWONERROR(tSC, newClass.%Save() )
@@ -265,6 +230,85 @@ ClassMethod Replace(pPackage As %String = "", pProject As %String = "", pParam A
 	Set output = $Replace(output,"#{package}", pPackage)
 	Set output = $Replace(output,"#{database.packagename}", $Replace(pPackage,".","_"))
 	Quit output
+}
+
+ClassMethod AddMethod(pPackage As %String = "", pProject As %String = "", pTemplateMethod As otzi.core.vo.Template.Method, Output pMethod As %Dictionary.MethodDefinition) As %Status [ Private ]
+{
+	Set tSC = $$$OK
+	Try {
+		Set pMethod = ##class(%Dictionary.MethodDefinition).%New()
+		Set pMethod.ClassMethod = 0, parameter = ""
+		
+		Set:pTemplateMethod.Type="Class" pMethod.ClassMethod = 1
+		Set:pTemplateMethod.Type="Client" pMethod.ClientMethod = 1
+		
+		If pTemplateMethod.Type = "Zen" {
+			Set pMethod.ClassMethod = 1, 
+				pMethod.ZenMethod = 1
+		}
+		
+		If pTemplateMethod.Type = "Javascript" {
+			Set pMethod.ClientMethod = 1, 
+				pMethod.Language = "javascript"
+		}
+		
+		Set:pTemplateMethod.Parameters'="" parameter = pTemplateMethod.Parameters
+		
+		//ZNSpace ns
+			Set pMethod.Name = ..Replace(pPackage, pProject, pTemplateMethod.Name)
+			Set:pTemplateMethod.Value'="" pMethod.ReturnType = ..Replace(pPackage, pProject, pTemplateMethod.Value)
+			Do pMethod.Implementation.Write( ..Replace(pPackage, pProject, pTemplateMethod.Implementation.Read()) )
+			Set:parameter'="" pMethod.FormalSpec = ..Replace(pPackage, pProject, parameter)
+		//ZNSpace pNamespace
+	} Catch tException {
+		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
+	}
+	Quit tSC
+}
+
+ClassMethod AddProperty(pPackage As %String = "", pProject As %String = "", pTemplateProperty As otzi.core.vo.Template.Property, Output pProperty As %Dictionary.PropertyDefinition) As %Status [ Private ]
+{
+	Set tSC = $$$OK
+	Try {
+
+		Set pProperty = ##class(%Dictionary.PropertyDefinition).%New()
+		
+		//ZNSpace ns
+			Set pProperty.Name = ..Replace(pPackage, pProject, pTemplateProperty.Name)
+			Set pProperty.Type = ..Replace(pPackage, pProject, pTemplateProperty.Value)
+		//ZNSpace pNamespace
+		
+		Set:pTemplateProperty.List'="" pProperty.Collection = "list"
+		If (pTemplateProperty.Parameters.Count() > 0) {
+			For param=1:1:pTemplateProperty.Parameters.Count() {
+				#Dim parameter As otzi.core.vo.Parameter
+				Set parameter = pTemplateProperty.Parameters.GetAt(param)
+				
+				Set paramValue ="",paramName =""
+				//ZNSpace ns
+					Set paramValue = ..Replace(pPackage, pProject, parameter.Value)
+					Set paramName = ..Replace(pPackage, pProject, parameter.Name)
+				//ZNSpace pNamespace
+				Do pProperty.Parameters.SetAt(paramValue, paramName)
+			}
+		}
+	} Catch tException {
+		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
+	}
+	Quit tSC
+}
+
+ClassMethod AddSimpleIndex(pPropertyName As %String, Output pIndex As %Dictionary.IndexDefinition) As %Status [ Private ]
+{
+	Set tSC = $$$OK
+	Try {
+		Set indice = ##class(%Dictionary.IndexDefinition).%New()
+		Set indice.Name = "Idx"_pPropertyName
+		Set indice.Properties = pPropertyName
+	} Catch tException {
+		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
+	}
+	Quit tSC
 }
 
 }
