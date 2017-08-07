@@ -157,7 +157,7 @@ ClassMethod help()
 {
 	Write !!,"Otzi: caché scaffolding tool",!
 	Write !, "Project or p to define the project name",!
-	Write "",!
+	Write "Package or pkg to define the package name",!
 	Write "",!
 	Write "",!
 }
