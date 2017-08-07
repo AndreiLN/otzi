@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2015.2.1 (Build 705U)" ts="2017-08-07 08:58:55">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2015.2.1 (Build 705U)" ts="2017-08-07 17:39:58">
 <Project name="otzi" LastModified="2017-08-07 08:58:45.469193">
   <Items>
     <ProjectItem name="otzi.core" type="PKG"></ProjectItem>
@@ -207,7 +207,7 @@ Generate</Description>
 
 
 <Class name="otzi.core.Generator">
-<TimeChanged>64502,32095.122907</TimeChanged>
+<TimeChanged>64502,62283.358763</TimeChanged>
 <TimeCreated>64226,59793.803971</TimeCreated>
 
 <Method name="Validate">
@@ -292,7 +292,7 @@ Load all classes from a template project and create</Description>
 		Set className = pTemplate.Name, newClass = ""
 		
 		If $Extract(className,1,1)="." {
-			S className = ""
+			Set className = ""
 			Set:pPackage'="" $List(className,*+1) = pPackage
 			Set:pProject'="" $List(className,*+1) = pProject
 			
@@ -329,13 +329,19 @@ Load all classes from a template project and create</Description>
 			
 			// Properties
 			For p=1:1:pTemplate.Properties.Count() {
+				ZNSpace ns
+					$$$THROWONERROR(tSC, ..AddProperty(pNamespace, pPackage, pProject, pTemplate.Methods.GetAt(p), .property))
+				ZNSpace pNamespace
 				
-				$$$THROWONERROR(tSC, ..AddProperty(pPackage, pProject, pTemplate.Methods.GetAt(p), .property))
 				$$$THROWONERROR(tSC, newClass.Properties.Insert(property) )
+				
 				
 				// Create simple Index
 				If pTemplate.Properties.GetAt(p).Index'="" {
-					$$$THROWONERROR(tSC, ..AddSimpleIndex(pTemplate.Properties.GetAt(p).Name, .indice))
+					ZNSpace ns
+						$$$THROWONERROR(tSC, ..AddSimpleIndex(pNamespace, pTemplate.Properties.GetAt(p).Name, .indice))
+					ZNSpace pNamespace
+					
 					$$$THROWONERROR(tSC, newClass.Indices.Insert(indice) )
 				}
 			}
@@ -343,7 +349,11 @@ Load all classes from a template project and create</Description>
 			
 			// Methods
 			For m=1:1:pTemplate.Methods.Count() {
-				$$$THROWONERROR(tSC, ..AddMethod(pPackage, pProject, pTemplate.Methods.GetAt(m), .method))
+				
+				ZNSpace ns
+					$$$THROWONERROR(tSC, ..AddMethod(pNamespace, pPackage, pProject, pTemplate.Methods.GetAt(m), .method))
+				ZNSpace pNamespace
+				
 				$$$THROWONERROR(tSC, newClass.Methods.Insert(method) )
 			}
 			$$$THROWONERROR(tSC, newClass.%Save() )
@@ -464,12 +474,14 @@ The <b>Replace</b> method add the package and project names to classname]]></Des
 
 <Method name="AddMethod">
 <ClassMethod>1</ClassMethod>
-<FormalSpec>pPackage:%String="",pProject:%String="",pTemplateMethod:otzi.core.vo.Template.Method,*pMethod:%Dictionary.MethodDefinition</FormalSpec>
+<FormalSpec>pNamespace:%String="",pPackage:%String="",pProject:%String="",pTemplateMethod:otzi.core.vo.Template.Method,*pMethod:%Dictionary.MethodDefinition</FormalSpec>
 <Private>1</Private>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	Set tSC = $$$OK
+	Set ns=$Namespace, tSC = $$$OK
 	Try {
+		ZNSpace pNamespace
+		
 		Set pMethod = ##class(%Dictionary.MethodDefinition).%New()
 		Set pMethod.ClassMethod = 0, parameter = ""
 		
@@ -488,34 +500,35 @@ The <b>Replace</b> method add the package and project names to classname]]></Des
 		
 		Set:pTemplateMethod.Parameters'="" parameter = pTemplateMethod.Parameters
 		
-		//ZNSpace ns
+		ZNSpace ns
 			Set pMethod.Name = ..Replace(pPackage, pProject, pTemplateMethod.Name)
 			Set:pTemplateMethod.Value'="" pMethod.ReturnType = ..Replace(pPackage, pProject, pTemplateMethod.Value)
 			Do pMethod.Implementation.Write( ..Replace(pPackage, pProject, pTemplateMethod.Implementation.Read()) )
 			Set:parameter'="" pMethod.FormalSpec = ..Replace(pPackage, pProject, parameter)
-		//ZNSpace pNamespace
+		ZNSpace pNamespace
 	} Catch tException {
 		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
 	}
+	ZNSpace ns
 	Quit tSC
 ]]></Implementation>
 </Method>
 
 <Method name="AddProperty">
 <ClassMethod>1</ClassMethod>
-<FormalSpec>pPackage:%String="",pProject:%String="",pTemplateProperty:otzi.core.vo.Template.Property,*pProperty:%Dictionary.PropertyDefinition</FormalSpec>
+<FormalSpec>pNamespace:%String="",pPackage:%String="",pProject:%String="",pTemplateProperty:otzi.core.vo.Template.Property,*pProperty:%Dictionary.PropertyDefinition</FormalSpec>
 <Private>1</Private>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	Set tSC = $$$OK
+	Set ns=$Namespace, tSC = $$$OK
 	Try {
-
+		ZNSpace pNamespace
 		Set pProperty = ##class(%Dictionary.PropertyDefinition).%New()
 		
-		//ZNSpace ns
+		ZNSpace ns
 			Set pProperty.Name = ..Replace(pPackage, pProject, pTemplateProperty.Name)
 			Set pProperty.Type = ..Replace(pPackage, pProject, pTemplateProperty.Value)
-		//ZNSpace pNamespace
+		ZNSpace pNamespace
 		
 		Set:pTemplateProperty.List'="" pProperty.Collection = "list"
 		If (pTemplateProperty.Parameters.Count() > 0) {
@@ -524,34 +537,38 @@ The <b>Replace</b> method add the package and project names to classname]]></Des
 				Set parameter = pTemplateProperty.Parameters.GetAt(param)
 				
 				Set paramValue ="",paramName =""
-				//ZNSpace ns
+				ZNSpace ns
 					Set paramValue = ..Replace(pPackage, pProject, parameter.Value)
 					Set paramName = ..Replace(pPackage, pProject, parameter.Name)
-				//ZNSpace pNamespace
+				ZNSpace pNamespace
 				Do pProperty.Parameters.SetAt(paramValue, paramName)
 			}
 		}
+		
 	} Catch tException {
 		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
 	}
+	ZNSpace ns
 	Quit tSC
 ]]></Implementation>
 </Method>
 
 <Method name="AddSimpleIndex">
 <ClassMethod>1</ClassMethod>
-<FormalSpec>pPropertyName:%String,*pIndex:%Dictionary.IndexDefinition</FormalSpec>
+<FormalSpec>pNamespace:%String="",pPropertyName:%String,*pIndex:%Dictionary.IndexDefinition</FormalSpec>
 <Private>1</Private>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	Set tSC = $$$OK
+	Set ns=$Namespace, tSC = $$$OK
 	Try {
+		ZNSpace pNamespace
 		Set indice = ##class(%Dictionary.IndexDefinition).%New()
 		Set indice.Name = "Idx"_pPropertyName
 		Set indice.Properties = pPropertyName
 	} Catch tException {
 		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
 	}
+	ZNSpace ns
 	Quit tSC
 ]]></Implementation>
 </Method>
@@ -1434,7 +1451,7 @@ Do ##class().GetOriginalNamespace()</Description>
 
 <Class name="otzi.core.axeBuilder">
 <Super>%RegisteredObject</Super>
-<TimeChanged>64243,59957.2527</TimeChanged>
+<TimeChanged>64502,63137.24273</TimeChanged>
 <TimeCreated>64218,53787.580736</TimeCreated>
 
 <Property name="Test">
@@ -1668,9 +1685,30 @@ Do ##class().GetOriginalNamespace()</Description>
 <Implementation><![CDATA[
 	Write !!,"Otzi: caché scaffolding tool",!
 	Write !, "Project or p to define the project name",!
+	Write "Package or pkg to define the package name",!
 	Write "",!
 	Write "",!
-	Write "",!
+]]></Implementation>
+</Method>
+
+<Method name="Scaffold">
+<Description>
+--- Scaffolding</Description>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set tSC = $$$OK
+	Try {
+		$$$THROWONERROR(tSC, ##class(otzi.core.Project).Create(..NameSpace, ..Package, ..Project, ..Modules, ..Test, ..WebApp, ..Options ))
+	} Catch tException {
+		Set:$$$ISOK(tSC) tSC = tException.AsStatus()
+	}
+	Quit tSC
+]]></Implementation>
+</Method>
+
+<Method name="run">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[	Quit ..Scaffold()
 ]]></Implementation>
 </Method>
 </Class>
